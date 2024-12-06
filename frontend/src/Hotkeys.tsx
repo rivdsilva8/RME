@@ -24,26 +24,6 @@ function HotKeys() {
   // State
   const [isHotkeysEnabled, setIsHotkeysEnabled] = useState(true);
 
-  // Ref
-  const helpToggleRef = useRef(false);
-  const lastNotesToggleRef = useRef(0);
-
-  // key(command) : value(mapped key) hashmap
-  const NightingaleMappings = new Map([
-    ["moveForward", "ArrowUp"],
-    ["moveBackward", "ArrowDown"],
-    ["tiltLeft", "ArrowLeft"],
-    ["tiltRight", "ArrowRight"],
-    ["moveUpwards", "w"],
-    ["moveDownwards", "s"],
-    ["cameraPitchUp", "Shift"],
-    ["cameraPitchDown", "Ctrl"],
-    ["cameraYawLeft", "a"],
-    ["cameraYawRight", "d"],
-    ["notes", "Tab"],
-    ["help", "h"],
-  ]);
-
   const SkydioMappings = new Map([
     ["moveForward", "w"],
     ["moveBackward", "s"],
@@ -98,15 +78,14 @@ function HotKeys() {
   // Handle key press based on Command
   const handleKeyPress = useCallback(
     (command: Command) => {
+      console.log("key pressed");
       if (!isHotkeysEnabled) return;
-
       emitHotkeySocket(command);
     },
     [emitHotkeySocket, isHotkeysEnabled]
   );
   useEffect(() => {
     if (!isHotkeysEnabled) return;
-
     if (tiltLeftCommand) handleKeyPress(Command.LEFT);
     if (tiltRightCommand) handleKeyPress(Command.RIGHT);
     if (moveUpwardsCommand) handleKeyPress(Command.UP);
@@ -166,9 +145,12 @@ function HotKeys() {
 
   return (
     <div>
-      <span>
+      <div>
         {isHotkeysEnabled ? "Hotkeys are Active" : "Hotkeys are Inactive"}
-      </span>
+        <div>
+          <textarea />
+        </div>
+      </div>
     </div>
   );
 }

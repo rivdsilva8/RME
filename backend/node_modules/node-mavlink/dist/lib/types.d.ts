@@ -1,0 +1,12 @@
+export declare type char = number;
+export declare type uint8_t = number;
+export declare type int8_t = number;
+export declare type uint16_t = number;
+export declare type int16_t = number;
+export declare type uint32_t = number;
+export declare type int32_t = number;
+export declare type uint8_t_mavlink_version = number;
+export declare type float = number;
+export declare type int64_t = bigint;
+export declare type uint64_t = bigint;
+export declare type double = number;

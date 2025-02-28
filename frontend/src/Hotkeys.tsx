@@ -71,7 +71,8 @@ function HotKeys() {
   const emitHotkeySocket = useCallback((command: any) => {
     // const drone = currentDrone;
     const drone = { name: "nsd25002" };
-    socket.emit("hotkey", drone, command);
+    socket.emit("hotkeys", drone, command);
+    console.log("yoo");
     console.log({ command, drone: drone });
   }, []);
 

@@ -1,14 +1,14 @@
 # RME React Mavlink Express
 
-# Trying to make hotkeys work with a simplified express app and react frontend with SITL and Mavlink
+# Trying to make hotkeys work with a simplified express backend and react frontend with SITL and Mavlink
 
 # Running the Application
 
 There are 3 parts to the application
 
 * SITL
-* Back-End
-* Front-End
+* Backend
+* Frontend
 
 # SITL 
 1. install SITL on your system and start arducopter
@@ -40,7 +40,7 @@ Here's the link for installing SITL on Windows and starting ArduCopter:
 
      
 
-# back-End :
+# backend :
 1. Navigate to the backend by using / or open in a new terminal
    
    ```bash
@@ -79,11 +79,11 @@ Here's the link for installing SITL on Windows and starting ArduCopter:
    npm run dev
    ```
 
-4. The Frontend server will be running by default on port 5173
+4. The Frontend will be running by default on port 5173
    open the link on a web browser to view the application
 
    ```bash
-   http://localhost:5173
+   [http://localhost:5173](http://localhost:5173)
    ```
 
 # Using the application: 

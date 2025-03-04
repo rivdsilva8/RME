@@ -17,9 +17,16 @@ There are 3 parts to the application
 Here's the link for installing SITL on Windows and starting ArduCopter:
 [SITL Installation & ArduCopter Startup (Windows)](https://youtu.be/dkaakbmZvZ4?si=JvpBkwedYy4q2epf)
 
-2. Run the command to start the simulation and open up the port for udp mavlink messages
+
+2. here is the repo for SITL
+
+3. Run the command to start the simulation and open up the port for udp mavlink messages (in the case you have 2 separate pcs on the same network)
+
+
+4. Run the command to start the simulation and open up the port for udp mavlink messages (in the case you have 2 separate pcs on the same network)
+
   ```bash
-   cd ./backend
+  $ ./sim_vehicle.py -v ArduCopter --console --map \ --out=udp:<web-stack-pc-ip>:14550 \ --out=udp:<SITL-pc-ip>:14551^C
    ```
    
 

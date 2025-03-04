@@ -18,19 +18,27 @@ Here's the link for installing SITL on Windows and starting ArduCopter:
 [SITL Installation & ArduCopter Startup (Windows)](https://youtu.be/dkaakbmZvZ4?si=JvpBkwedYy4q2epf)
 
 
-2. here is the repo for SITL
 
-3. Run the command to start the simulation and open up the port for udp mavlink messages (in the case you have 2 separate pcs on the same network)
+2. Run the command on the CYGWIN terminal to download the ardupilot repo
 
+    ```bash
+     git clone -b Copter-3.4.6 https://github.com/ardupilot/ardupilot.git
+     ```
+    
+3. navigate to the correct directory with this command
 
-4. Run the command to start the simulation and open up the port for udp mavlink messages (in the case you have 2 separate pcs on the same network)
+    ```bash
+      cd ardupilot/Tools/autotest/
+     ```
 
-  ```bash
-  $ ./sim_vehicle.py -v ArduCopter --console --map \ --out=udp:<web-stack-pc-ip>:14550 \ --out=udp:<SITL-pc-ip>:14551^C
-   ```
-   
+    
+4. Run the command to start the simulation and open up the port for udp mavlink messages (in the case you have 2 separate pcs on the same network, if you run both webserver and SITL simuation on the same PC you will have to change various ports and ips on "server.js" (backend))
+  
+    ```bash
+     ./sim_vehicle.py -v ArduCopter --console --map \ --out=udp:<web-stack-pc-ip>:14550 \ --out=udp:<SITL-pc-ip>:14551^C
+     ```
 
-
+     
 
 # back-End :
 1. Navigate to the backend by using / or open in a new terminal
@@ -77,6 +85,12 @@ Here's the link for installing SITL on Windows and starting ArduCopter:
    ```bash
    http://localhost:5173
    ```
+
+# Using the application: 
+
+1. there are key mappings for various drone inputs, for now its aswd -> movement and direction keys -> camera movement
+2. hokeys are activated using the toggle button  , may need to send a loiter command when hotkeys go frm  false -> true
+   
 
 
 

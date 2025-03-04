@@ -41,7 +41,7 @@ Here's the link for installing SITL on Windows and starting ArduCopter:
 3. Run the server using the command
 
    ```bash
-   npm server
+   node server
    ```
 4. The Backend server will be running by default on port 4000
 

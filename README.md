@@ -60,8 +60,8 @@ Here's the link for installing SITL on Windows and starting ArduCopter:
    ```
 4. The Backend server will be running by default on port 4000
 
-# Front-End :
-1. Navigate to the Frontend by using / or open in a new terminal
+# frontend :
+1. Navigate to the frontend by using / or open in a new terminal
    
    ```bash
    cd ./frontend
@@ -73,13 +73,13 @@ Here's the link for installing SITL on Windows and starting ArduCopter:
    npm i 
    ```
    
-3. Run the Frontend server using the command
+3. Run the frontend server using the command
 
    ```bash
    npm run dev
    ```
 
-4. The Frontend server will be running by default on port 5173.  
+4. The frontend server will be running by default on port 5173.  
    Open the link in a web browser to view the application:  
 
    [http://localhost:5173](http://localhost:5173)

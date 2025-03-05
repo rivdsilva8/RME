@@ -1,47 +1,43 @@
-import mavlink from 'mavlink';
 import dgram from 'dgram';
+import { MavLinkPacketSplitter, MavLinkPacketParser } from 'node-mavlink';
 
-const SITL_IP = '10.0.0.203';  // webserver - ip
-const SITL_PORT = 14551;       // The port number for SITL communication
+const SITL_IP = '10.0.0.203'; // Listen on all interfaces
+const SITL_PORT = 14551; // Common MAVLink UDP port
 
-// Create a UDP socket to receive MAVLink messages
-const client = dgram.createSocket('udp4');
+const server = dgram.createSocket('udp4');
 
-client.on('listening', () => {
-  const address = client.address();
-  console.log(`UDP socket is listening on ${address.address}:${address.port}`);
+server.on('listening', () => {
+  const address = server.address();
+  console.log(`Listening for MAVLink on ${address.address}:${address.port}`);
 });
 
-client.on('message', (message, remote) => {
-  console.log(`Received MAVLink message from ${remote.address}:${remote.port}`);
+server.on('message', (message, remote) => {
+//   console.log(`Received MAVLink message from ${remote.address}:${remote.port}`);
+
+  // Process MAVLink packets
+  const splitter = new MavLinkPacketSplitter();
+  const parser = new MavLinkPacketParser();
   
-  // Log raw MAVLink message as buffer
-  console.log('Raw MAVLink message (Buffer):', message);
+  splitter.write(message);
+  splitter.pipe(parser);
   
-  // Initialize MAVLink parser
-  const mav = new mavlink();
+  parser.on('data', (packet) => {
+    // console.log('Parsed MAVLink Packet:', packet);
   
-  // Parse the incoming message
-  try {
-    mav.parse(message);
-    console.log('Successfully parsed MAVLink message:', mav);
-  } catch (err) {
-    console.error('Error parsing MAVLink message:', err);
-  }
+    if (packet.header.msgid === 0) {  // HEARTBEAT message
+      const customMode = packet.payload.readUInt32LE(0);
+      const type = packet.payload.readUInt8(4);
+      const autopilot = packet.payload.readUInt8(5);
+      const baseMode = packet.payload.readUInt8(6);
+      const systemStatus = packet.payload.readUInt8(7);
+  
+      console.log(`HEARTBEAT received: Type=${type}, Autopilot=${autopilot}, Mode=${customMode}, Base Mode=${baseMode}, Status=${systemStatus}`);
+  
+      const isArmed = (baseMode & 0x80) !== 0;  // Check if the 'ARMED' bit is set
+      console.log(`Drone is ${isArmed ? 'ARMED' : 'DISARMED'}`);
+    }
+  });
+  
 });
 
-// Handle errors
-client.on('error', (err) => {
-  console.error(`Error with UDP client: ${err.message}`);
-  client.close();  // Close the socket on error
-});
-
-// Start listening on the specified IP and port
-client.bind(SITL_PORT, SITL_IP, () => {
-  console.log(`Started listening for MAVLink messages on ${SITL_IP}:${SITL_PORT}`);
-});
-
-// Optional: Log a message every time a message is received
-client.on('message', (message) => {
-  console.log('New message received');
-});
+server.bind(SITL_PORT, SITL_IP);

@@ -2,6 +2,9 @@
 
 # Trying to make hotkeys work with a simplified express backend and react frontend with SITL and Mavlink
 
+
+# testing.js rn to see how to connect backend to SITL instance via UDP
+# server.js is still WIP 
 # Running the Application
 
 There are 3 parts to the application

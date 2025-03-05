@@ -1,9 +1,9 @@
-/* eslint-disable no-nested-ternary */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useKeyPress } from "./hooks";
-const baseURL = "http://localhost:4000";
 import io from "socket.io-client";
-const socket = io(baseURL);
+
+const baseURL = "http://localhost:4000";
+
 export enum Command {
   LEFT = "LEFT",
   RIGHT = "RIGHT",
@@ -17,12 +17,22 @@ export enum Command {
   CAMERA_YAW_RIGHT = "CAMERA_YAW_RIGHT",
   NOTES = "NOTES",
   HELP = "HELP",
+  TOGGLE_HOTKEYS = "TOGGLE_HOTKEYS",
 }
-function HotKeys() {
-  // redux
 
-  // State
+function HotKeys() {
   const [isHotkeysEnabled, setIsHotkeysEnabled] = useState(true);
+  const [keyPressed, setKeyPressed] = useState(false);
+  const [socket, setSocket] = useState(null);
+
+  useEffect(() => {
+    const newSocket = io(baseURL, { autoConnect: true });
+    setSocket(newSocket);
+
+    return () => {
+      newSocket.disconnect();
+    };
+  }, []);
 
   const SkydioMappings = new Map([
     ["moveForward", "w"],
@@ -37,11 +47,11 @@ function HotKeys() {
     ["cameraYawRight", "ArrowRight"],
     ["notes", "Tab"],
     ["help", "h"],
+    ["toggleHotkeys", "Control+h"],
   ]);
+
   const commandKeyMappings = SkydioMappings;
 
-  // custom hooks
-  // Get key press states directly using command mappings
   const moveForwardCommand = useKeyPress(commandKeyMappings.get("moveForward"));
   const moveBackwardCommand = useKeyPress(
     commandKeyMappings.get("moveBackward")
@@ -58,7 +68,6 @@ function HotKeys() {
   const cameraPitchDownCommand = useKeyPress(
     commandKeyMappings.get("cameraPitchDown")
   );
-
   const cameraYawLeftCommand = useKeyPress(
     commandKeyMappings.get("cameraYawLeft")
   );
@@ -67,40 +76,71 @@ function HotKeys() {
   );
   const noteCommand = useKeyPress(commandKeyMappings.get("notes"));
   const helpCommand = useKeyPress(commandKeyMappings.get("help"));
+  const toggleHotkeysCommand = useKeyPress(
+    commandKeyMappings.get("toggleHotkeys")
+  );
 
-  const emitHotkeySocket = useCallback((command: any) => {
-    // const drone = currentDrone;
-    const drone = { name: "nsd25002" };
-    socket.emit("hotkeys", drone, command);
-    console.log("yoo");
-    console.log({ command, drone: drone });
-  }, []);
+  const emitHotkeySocket = useCallback(
+    (command: any) => {
+      if (!socket) return;
+      const drone = "nsd25002";
+      console.log({ command, drone });
+      socket.emit("hotkeys", drone, command);
+    },
+    [socket]
+  );
 
-  // Handle key press based on Command
   const handleKeyPress = useCallback(
-    (command: Command) => {
-      console.log("key pressed");
-      if (!isHotkeysEnabled) return;
+    (command: any) => {
+      if (!isHotkeysEnabled && command !== Command.TOGGLE_HOTKEYS) return;
       emitHotkeySocket(command);
     },
     [emitHotkeySocket, isHotkeysEnabled]
   );
+
   useEffect(() => {
-    if (!isHotkeysEnabled) return;
+    if (toggleHotkeysCommand) {
+      setIsHotkeysEnabled((prev) => !prev);
+    }
+  }, [toggleHotkeysCommand]);
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.repeat) return; // Prevent duplicate events from holding the key
+      setKeyPressed(true);
+    };
+
+    const handleKeyUp = () => {
+      setKeyPressed(false);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isHotkeysEnabled || keyPressed) return;
+
     if (tiltLeftCommand) handleKeyPress(Command.LEFT);
-    if (tiltRightCommand) handleKeyPress(Command.RIGHT);
-    if (moveUpwardsCommand) handleKeyPress(Command.UP);
-    if (moveDownwardsCommand) handleKeyPress(Command.DOWN);
-    if (cameraPitchUpCommand) handleKeyPress(Command.CAMERA_PITCH_UP);
-    if (cameraPitchDownCommand) handleKeyPress(Command.CAMERA_PITCH_DOWN);
-    if (cameraYawLeftCommand) handleKeyPress(Command.CAMERA_YAW_LEFT);
-    if (cameraYawRightCommand) handleKeyPress(Command.CAMERA_YAW_RIGHT);
-    if (moveForwardCommand) handleKeyPress(Command.FORWARD);
-    if (moveBackwardCommand) handleKeyPress(Command.BACKWARD);
-    if (noteCommand) handleKeyPress(Command.NOTES);
-    if (helpCommand) handleKeyPress(Command.HELP);
+    else if (tiltRightCommand) handleKeyPress(Command.RIGHT);
+    else if (moveUpwardsCommand) handleKeyPress(Command.UP);
+    else if (moveDownwardsCommand) handleKeyPress(Command.DOWN);
+    else if (cameraPitchUpCommand) handleKeyPress(Command.CAMERA_PITCH_UP);
+    else if (cameraPitchDownCommand) handleKeyPress(Command.CAMERA_PITCH_DOWN);
+    else if (cameraYawLeftCommand) handleKeyPress(Command.CAMERA_YAW_LEFT);
+    else if (cameraYawRightCommand) handleKeyPress(Command.CAMERA_YAW_RIGHT);
+    else if (moveForwardCommand) handleKeyPress(Command.FORWARD);
+    else if (moveBackwardCommand) handleKeyPress(Command.BACKWARD);
+    else if (noteCommand) handleKeyPress(Command.NOTES);
+    else if (helpCommand) handleKeyPress(Command.HELP);
   }, [
     isHotkeysEnabled,
+    keyPressed,
     handleKeyPress,
     tiltLeftCommand,
     tiltRightCommand,
@@ -115,43 +155,64 @@ function HotKeys() {
     noteCommand,
     helpCommand,
   ]);
-  const handleFocusChange = useCallback(() => {
-    const activeElement = document.activeElement as HTMLElement;
-    console.log("activeElement", activeElement);
-
-    // Check if the active element is an interactive element
-    const isInteractiveElement =
-      activeElement.matches(
-        'input, textarea, button, select, [contenteditable="true"]'
-      ) || activeElement.closest(".leaflet-container"); // Leaflet map container
-
-    if (isInteractiveElement) {
-      setIsHotkeysEnabled(false); // Disable hotkeys
-    } else {
-      setIsHotkeysEnabled(true); // Re-enable hotkeys
-    }
-  }, []);
-
-  useEffect(() => {
-    // Listen for focus changes
-    document.addEventListener("focusin", handleFocusChange);
-    document.addEventListener("focusout", handleFocusChange);
-
-    return () => {
-      // Clean up event listeners
-      document.removeEventListener("focusin", handleFocusChange);
-      document.removeEventListener("focusout", handleFocusChange);
-    };
-  }, [handleFocusChange]);
 
   return (
     <div>
-      <div>
-        {isHotkeysEnabled ? "Hotkeys are Active" : "Hotkeys are Inactive"}
-        <div>
-          <textarea />
-        </div>
-      </div>
+      <label className="switch">
+        <input
+          type="checkbox"
+          checked={isHotkeysEnabled}
+          onChange={() => setIsHotkeysEnabled((prev) => !prev)}
+        />
+        <span className="slider round"></span>
+      </label>
+      <p>Hotkeys {isHotkeysEnabled ? "Enabled" : "Disabled"}</p>
+      <style jsx>{`
+        .switch {
+          position: relative;
+          display: inline-block;
+          width: 34px;
+          height: 20px;
+        }
+
+        .switch input {
+          opacity: 0;
+          width: 0;
+          height: 0;
+        }
+
+        .slider {
+          position: absolute;
+          cursor: pointer;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: #ccc;
+          transition: 0.4s;
+          border-radius: 34px;
+        }
+
+        .slider:before {
+          position: absolute;
+          content: "";
+          height: 14px;
+          width: 14px;
+          left: 3px;
+          bottom: 3px;
+          background-color: white;
+          transition: 0.4s;
+          border-radius: 50%;
+        }
+
+        input:checked + .slider {
+          background-color: #2196f3;
+        }
+
+        input:checked + .slider:before {
+          transform: translateX(14px);
+        }
+      `}</style>
     </div>
   );
 }

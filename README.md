@@ -43,8 +43,8 @@ Here's the link for installing SITL on Windows and starting ArduCopter:
      
 
 # backend :
-## testing.js rn to see how to connect backend to SITL instance via UDP
-## server.js is still WIP 
+## testing.js rn to see how to connect backend to SITL instance via UDP : you need to change the ip to whatever is applicable to ur system
+## server.js is still WIP, you need to change the ip to the <web-stack-pc-ip> and the port to 14550
 1. Navigate to the backend by using / or open in a new terminal
    
    ```bash

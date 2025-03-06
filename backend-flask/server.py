@@ -7,6 +7,35 @@ SITL_PORT = 14551       # MAVLink UDP port for SITL
 
 # Connect to SITL
 mavlink_conn = mavutil.mavlink_connection(f'udp:{SITL_IP}:{SITL_PORT}')
+mavlink_conn.wait_heartbeat()
+print("Heartbeat received. Connection established.")
+
+# Function to change flight mode
+def set_mode(mode):
+    """
+    Set the flight mode of the drone.
+    """
+    mode_mapping = mavlink_conn.mode_mapping()
+    
+    if mode not in mode_mapping:
+        print(f"Mode {mode} is not available.")
+        return False
+
+    mode_id = mode_mapping[mode]
+
+    # Send the command to set mode
+    mavlink_conn.mav.set_mode_send(
+        mavlink_conn.target_system,
+        mavutil.mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED,
+        mode_id
+    )
+
+    # Wait for confirmation
+    while True:
+        ack = mavlink_conn.recv_match(type='COMMAND_ACK', blocking=True)
+        if ack and ack.command == mavutil.mavlink.MAV_CMD_DO_SET_MODE:
+            print(f"Mode change to {mode} acknowledged.")
+            return True
 
 # Function to fetch telemetry data
 def get_telemetry():
@@ -47,8 +76,9 @@ def get_telemetry():
         if output != '':
             print(output)
 
-        # Sleep for a short time to avoid spamming the console
-        # time.sleep(0.1)
-
 if __name__ == "__main__":
+    # Set the drone mode to GUIDED
+    set_mode("RTL")
+    
+    # Start fetching telemetry data
     get_telemetry()

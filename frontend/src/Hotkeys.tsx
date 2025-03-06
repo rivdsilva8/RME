@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useKeyPress } from "./hooks";
 import io from "socket.io-client";
 
-const baseURL = "http://localhost:4000";
+const baseURL = "http://localhost:5001";
 
 export enum Command {
   LEFT = "LEFT",

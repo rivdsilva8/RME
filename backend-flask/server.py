@@ -32,7 +32,7 @@ def get_telemetry():
                 "vy": msg.vy / 100,
                 "vz": msg.vz / 100
             }
-            output = f"Position -> Lat: {telemetry_data['latitude']:.7f}, Lon: {telemetry_data['longitude']:.7f}, Alt: {telemetry_data['altitude']:.2f}m, Rel Alt: {telemetry_data['relative_altitude']:.2f}m, vx: {telemetry_data['vx']:.2f}m/s, vy: {telemetry_data['vy']:.2f}m/s, vz: {telemetry_data['vz']:.2f}m/s"
+            output = f"Position -> Lat: {telemetry_data['latitude']:.7f}, Lon: {telemetry_data['longitude']:.7f}, MSL: {telemetry_data['altitude']:.2f}m, AGL: {telemetry_data['relative_altitude']:.2f}m, vx: {telemetry_data['vx']:.2f}m/s, vy: {telemetry_data['vy']:.2f}m/s, vz: {telemetry_data['vz']:.2f}m/s"
 
         # Handle ATTITUDE for attitude data
         elif msg.get_type() == "ATTITUDE":
@@ -48,7 +48,7 @@ def get_telemetry():
             print(output)
 
         # Sleep for a short time to avoid spamming the console
-        time.sleep(0.1)
+        # time.sleep(0.1)
 
 if __name__ == "__main__":
     get_telemetry()

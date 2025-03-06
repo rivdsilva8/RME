@@ -25,32 +25,28 @@ def get_mavlink_conn():
         print("Heartbeat received. Connection established.")
     return mavlink_conn
 
-def set_mode(mode):
+def send_velocity_command(vx, vy, vz):
     """
-    Set the flight mode of the drone.
+    Send a velocity command to the drone in the NED frame (North-East-Down).
+    vx: forward/backward velocity (positive is forward).
+    vy: left/right velocity (positive is right).
+    vz: up/down velocity (positive is down).
     """
     mavlink_conn = get_mavlink_conn()  # Ensure connection is established
-    mode_mapping = mavlink_conn.mode_mapping()
     
-    if mode not in mode_mapping:
-        print(f"Mode {mode} is not available.")
-        return False
-
-    mode_id = mode_mapping[mode]
-
-    # Send the command to set mode
-    mavlink_conn.mav.set_mode_send(
-        mavlink_conn.target_system,
-        mavutil.mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED,
-        mode_id
+    # Send the velocity command (NED frame)
+    mavlink_conn.mav.set_position_target_local_ned_send(
+        0,                      # Time_boot_ms (set to 0 for now)
+        mavlink_conn.target_system,  # Target system ID
+        mavlink_conn.target_component,  # Target component ID
+        mavutil.mavlink.MAV_FRAME_LOCAL_NED,  # Coordinate frame (local NED)
+        0b0000111111000111,        # Type mask (ignore position, only use velocity)
+        0, 0, 0,                   # Position X, Y, Z (ignored)
+        vx, vy, vz,                 # Velocity in X (N), Y (E), Z (D)
+        0, 0, 0,                     # Acceleration (ignored)
+        0, 0                         # Yaw and yaw rate (ignored)
     )
-
-    # Wait for acknowledgment without blocking
-    ack = mavlink_conn.recv_match(type='COMMAND_ACK', blocking=False)
-    if ack and ack.command == mavutil.mavlink.MAV_CMD_DO_SET_MODE:
-        print(f"Mode change to {mode} acknowledged.")
-        return True
-    return False
+    print(f"Sent velocity command: vx={vx}, vy={vy}, vz={vz}")
 
 @app.route('/')
 def index():
@@ -63,17 +59,18 @@ def handle_hotkeys(drone, command):
     """
     print(f"Received command: {command} for drone: {drone}")
 
-    # Here you can add logic to process the received command, e.g., mapping commands to MAVLink
-    success = False
-    if command == "FORWARD":
-        success = set_mode("GUIDED")  # Modify as needed
-    elif command == "LEFT":
-        success = set_mode("STABILIZE")  # Modify as needed
-    elif command == "RIGHT":
-        success = set_mode("RTL")  # Modify as needed
-        
-    # Send back a response to frontend
-    if success:
+    # Map the received command to corresponding velocity values
+    movement_mapping = {
+        "FORWARD": (1, 0, 0),
+        "BACKWARD": (-1, 0, 0),
+        "LEFT": (0, -1, 0),
+        "RIGHT": (0, 1, 0),
+        "UP": (0, 0, -1),
+        "DOWN": (0, 0, 1)
+    }
+
+    if command in movement_mapping:
+        send_velocity_command(*movement_mapping[command])
         emit('command_response', {'status': 'success', 'message': f"Command {command} executed for drone {drone}"})
     else:
         emit('command_response', {'status': 'error', 'message': f"Failed to execute {command} for drone {drone}"})

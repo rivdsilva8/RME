@@ -3,10 +3,10 @@ import pkg from 'node-mavlink';
 
 const { MavLinkPacketSplitter, MavLinkPacketParser, MavLink2Packet } = pkg;
 
-const SITL_IP = '10.0.0.226';
+const SITL_IP = '10.0.0.226'; // SITL
 const SITL_PORT_RECEIVE = 14551;
 const SITL_PORT_SEND = 14550;
-const LOCAL_IP = '10.0.0.203';
+const LOCAL_IP = '10.0.0.203'; // webserver
 const LOCAL_PORT_SEND = 14550;
 const LOCAL_PORT_RECEIVE = 14551;
 

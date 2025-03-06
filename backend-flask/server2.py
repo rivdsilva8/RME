@@ -5,14 +5,13 @@ from pymavlink import mavutil
 
 # Flask App Setup
 app = Flask(__name__)
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins=['http://localhost:5173']) #Corrected line
 
-# SITL MAVLink Connection Details
-SITL_IP = "10.0.0.203"  # IP address of the machine running SITL (Windows PC)
-SITL_PORT = 14551       # MAVLink UDP port for SITL
+SITL_IP = "127.0.0.1"  # Since SITL and Flask are running on the same machine
+SITL_PORT = 14550
 
 # MAVLink connection initialized once and reused
-mavlink_conn = None  
+mavlink_conn = None
 
 def get_mavlink_conn():
     """
@@ -33,18 +32,18 @@ def send_velocity_command(vx, vy, vz):
     vz: up/down velocity (positive is down).
     """
     mavlink_conn = get_mavlink_conn()  # Ensure connection is established
-    
+
     # Send the velocity command (NED frame)
     mavlink_conn.mav.set_position_target_local_ned_send(
-        0,                      # Time_boot_ms (set to 0 for now)
-        mavlink_conn.target_system,  # Target system ID
-        mavlink_conn.target_component,  # Target component ID
-        mavutil.mavlink.MAV_FRAME_LOCAL_NED,  # Coordinate frame (local NED)
-        0b0000111111000111,        # Type mask (ignore position, only use velocity)
-        0, 0, 0,                   # Position X, Y, Z (ignored)
-        vx, vy, vz,                 # Velocity in X (N), Y (E), Z (D)
-        0, 0, 0,                     # Acceleration (ignored)
-        0, 0                         # Yaw and yaw rate (ignored)
+        0,                                  # Time_boot_ms (set to 0 for now)
+        mavlink_conn.target_system,         # Target system ID
+        mavlink_conn.target_component,      # Target component ID
+        mavutil.mavlink.MAV_FRAME_LOCAL_NED, # Coordinate frame (local NED)
+        0b0000111111000111,                 # Type mask (ignore position, only use velocity)
+        0, 0, 0,                             # Position X, Y, Z (ignored)
+        vx, vy, vz,                          # Velocity in X (N), Y (E), Z (D)
+        0, 0, 0,                             # Acceleration (ignored)
+        0, 0                                 # Yaw and yaw rate (ignored)
     )
     print(f"Sent velocity command: vx={vx}, vy={vy}, vz={vz}")
 
@@ -60,13 +59,14 @@ def handle_hotkeys(drone, command):
     print(f"Received command: {command} for drone: {drone}")
 
     # Map the received command to corresponding velocity values
+    distance = 3
     movement_mapping = {
-        "FORWARD": (2, 0, 0),
-        "BACKWARD": (-2, 0, 0),
-        "LEFT": (0, -2, 0),
-        "RIGHT": (0, 2, 0),
-        "UP": (0, 0, -2),
-        "DOWN": (0, 0, 2)
+        "FORWARD": (distance, 0, 0),
+        "BACKWARD": (-distance, 0, 0),
+        "LEFT": (0, -distance, 0),
+        "RIGHT": (0, distance, 0),
+        "UP": (0, 0, -distance),
+        "DOWN": (0, 0, distance)
     }
 
     if command in movement_mapping:

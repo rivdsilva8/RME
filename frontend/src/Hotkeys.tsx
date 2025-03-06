@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useEffect, useState } from "react";
 import { useKeyPress } from "./hooks";
 import io from "socket.io-client";
@@ -23,7 +24,7 @@ export enum Command {
 function HotKeys() {
   const [isHotkeysEnabled, setIsHotkeysEnabled] = useState(true);
   const [keyPressed, setKeyPressed] = useState(false);
-  const [socket, setSocket] = useState(null);
+  const [socket, setSocket] = useState<any>(null);
 
   useEffect(() => {
     const newSocket = io(baseURL, { autoConnect: true });

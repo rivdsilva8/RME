@@ -61,12 +61,12 @@ def handle_hotkeys(drone, command):
 
     # Map the received command to corresponding velocity values
     movement_mapping = {
-        "FORWARD": (1, 0, 0),
-        "BACKWARD": (-1, 0, 0),
-        "LEFT": (0, -1, 0),
-        "RIGHT": (0, 1, 0),
-        "UP": (0, 0, -1),
-        "DOWN": (0, 0, 1)
+        "FORWARD": (2, 0, 0),
+        "BACKWARD": (-2, 0, 0),
+        "LEFT": (0, -2, 0),
+        "RIGHT": (0, 2, 0),
+        "UP": (0, 0, -2),
+        "DOWN": (0, 0, 2)
     }
 
     if command in movement_mapping:

@@ -78,7 +78,7 @@ def get_telemetry():
 
 if __name__ == "__main__":
     # Set the drone mode to GUIDED
-    set_mode("RTL")
+    # set_mode("RTL")
     
     # Start fetching telemetry data
     get_telemetry()

@@ -113,7 +113,7 @@ def handle_hotkeys(drone, command):
     sys.stdout.flush()  # Ensure output is printed immediately
 
     # Map the received command to corresponding velocity values
-    distance = 3
+    distance = 7
     movement_mapping = {
         "FORWARD": (distance, 0, 0),
         "BACKWARD": (-distance, 0, 0),
@@ -125,7 +125,6 @@ def handle_hotkeys(drone, command):
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
     if command in movement_mapping:
-        time.sleep(0.5)
         send_velocity_command(*movement_mapping[command])
 
         emit('command_response', {'status': 'success', 

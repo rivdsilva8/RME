@@ -105,7 +105,7 @@ Here's the link for installing SITL on Windows and starting ArduCopter:
 3. Check for Drone telemetry on the Frontend
 4. click on frontend so you key presses get registered
 5. there are key mappings for various drone inputs, for now its aswd for top-down movement, shift and space for altitude control
-6. hokeys are activated using the toggle button  make sure this is on (yellow)
+6. hotkeys are activated using the toggle button  make sure this is on (yellow)
    
 
 

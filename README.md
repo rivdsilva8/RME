@@ -2,7 +2,12 @@
 
 # Trying to make hotkeys work with a simplified express backend and react frontend with SITL and Mavlink
 
+## Clone the repo with 
 
+
+ ```bash
+     git clone https://github.com/rivdsilva8/RME.git
+ ```
 
 # Running the Application
 
@@ -19,8 +24,6 @@ There are 3 parts to the application
 Here's the link for installing SITL on Windows and starting ArduCopter:
 [SITL Installation & ArduCopter Startup (Windows)](https://youtu.be/dkaakbmZvZ4?si=JvpBkwedYy4q2epf)
 
-
-
 2. Run the command on the CYGWIN terminal to download the ardupilot repo
 
     ```bash
@@ -36,33 +39,35 @@ Here's the link for installing SITL on Windows and starting ArduCopter:
     
 4. Run the command to start the simulation and open up the port for udp mavlink messages (in the case you have 2 separate pcs on the same network, if you run both webserver and SITL simuation on the same PC you will have to change various ports and ips on "server.js" (backend))
   
-    ```bash
-     ./sim_vehicle.py -v ArduCopter --console --map \ --out=udp:<web-stack-pc-ip>:14550 \ --out=udp:<SITL-pc-ip>:14551
+    ```bash    
+     ./sim_vehicle.py -v ArduCopter --console --map \ --out=udp:127.0.0.1:14550 
      ```
 
      
 
 # backend :
-## testing.js rn to see how to connect backend to SITL instance via UDP : you need to change the ip to whatever is applicable to ur system
-## server.js is still WIP, you need to change the ip to the <web-stack-pc-ip> and the port to 14550
-1. Navigate to the backend by using / or open in a new terminal
+
+1. Navigate to the backend
    
    ```bash
-   cd ./backend
+   cd ./backend-flask
    ```
    
 2. Install all dependencies by running
    
    ```bash
-   npm i 
+   pip install flask flask-socketio pymavlink eventlet OR pip3 install flask flask-socketio pymavlink eventlet
+
    ```
    
 3. Run the server using the command
 
    ```bash
-   node server
+   python server2.py OR  python3 server2.py
    ```
-4. The Backend server will be running by default on port 4000
+4. The Backend server (socket) will be running by default on port 5001
+
+
 
 # frontend :
 1. Navigate to the frontend by using / or open in a new terminal
@@ -90,8 +95,16 @@ Here's the link for installing SITL on Windows and starting ArduCopter:
 
 # Using the application: 
 
-1. there are key mappings for various drone inputs, for now its aswd -> movement and direction keys -> camera movement
-2. hokeys are activated using the toggle button  , may need to send a loiter command when hotkeys go frm  false -> true
+1. Before using this Make sure your backend and SITL instance are both up
+2. make sure your drone is up, (type into mavproxy terminal)
+    ```bash
+   mode guided
+   arm throttle
+   takeoff 20 
+   ```
+3. Check for Drone telemetry on the Frontend 
+4. there are key mappings for various drone inputs, for now its aswd for top-down movement, shift and space for altitude control
+5. hokeys are activated using the toggle button  make sure this is on (yellow)
    
 
 

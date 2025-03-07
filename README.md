@@ -14,8 +14,8 @@
 There are 3 parts to the application
 
 * SITL
-* Backend
-* Frontend
+* Backend - Flask
+* Frontend - React
 
 # SITL 
 1. install SITL on your system and start arducopter

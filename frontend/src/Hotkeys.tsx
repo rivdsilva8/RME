@@ -39,6 +39,7 @@ function HotKeys() {
       } else if (data.type === "attitude") {
         setAttitude(data.data); // Update attitude data
       }
+    
     });
 
     // Listen for command status response

@@ -1,5 +1,6 @@
 import sys
 import time
+import math
 from flask import Flask
 from flask_socketio import SocketIO, emit
 from pymavlink import mavutil
@@ -10,35 +11,32 @@ from datetime import datetime
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins=['http://localhost:5173'])
 
-SITL_IP = "127.0.0.1"  # Since SITL and Flask are running on the same machine
+SITL_IP = "127.0.0.1"
 SITL_PORT = 14550
 
-# MAVLink connection initialized once and reused
 mavlink_conn = None
+current_yaw = 0  # Store the latest yaw (heading) of the drone
 
 def initialize_mavlink_conn():
-    """
-    Initialize the MAVLink connection once at the start.
-    """
     global mavlink_conn
     if mavlink_conn is None:
         print("Establishing MAVLink connection...")
         mavlink_conn = mavutil.mavlink_connection(f'udp:{SITL_IP}:{SITL_PORT}')
         mavlink_conn.wait_heartbeat()
         print("Heartbeat received. Connection established.")
-        sys.stdout.flush()  # Ensure output is printed immediately
+        sys.stdout.flush()
 
 def send_velocity_command(vx, vy, vz):
     """
-    Send a velocity command to the drone in the NED frame (North-East-Down).
-    vx: forward/backward velocity (positive is forward).
-    vy: left/right velocity (positive is right).
-    vz: up/down velocity (positive is down).
+    Send a velocity command in the NED frame with optional yaw control.
+    vx: forward/backward velocity (relative to heading).
+    vy: left/right velocity.
+    vz: up/down velocity.
+    yaw_rate: angular velocity to turn the drone (positive = right, negative = left).
     """
-    # Ensure MAVLink connection is established
     initialize_mavlink_conn()
 
-    # Send the velocity command (NED frame)
+     # Send the velocity command (NED frame)
     mavlink_conn.mav.set_position_target_local_ned_send(
         0,                                  # Time_boot_ms (set to 0 for now)
         mavlink_conn.target_system,         # Target system ID
@@ -54,49 +52,36 @@ def send_velocity_command(vx, vy, vz):
     sys.stdout.flush()  # Ensure output is printed immediately
 
 def get_telemetry():
+    global current_yaw
     print("Starting telemetry listener...")
-    sys.stdout.flush()  # Ensure output is printed immediately
+    sys.stdout.flush()
+
     while True:
-        # Receive message from SITL
         msg = mavlink_conn.recv_match(blocking=True)
         if not msg:
             continue
 
-        # Initialize output variable
         output = {}
 
-        # Handle GLOBAL_POSITION_INT for position data
         if msg.get_type() == "GLOBAL_POSITION_INT":
             telemetry_data = {
-                "latitude": msg.lat / 1e7,  # Convert to degrees
-                "longitude": msg.lon / 1e7,  # Convert to degrees
-                "altitude": msg.alt / 1000,  # Convert mm to meters
-                "relative_altitude": msg.relative_alt / 1000,  # Convert mm to meters
-                "vx": msg.vx / 100,  # Convert cm/s to m/s
+                "latitude": msg.lat / 1e7,
+                "longitude": msg.lon / 1e7,
+                "altitude": msg.alt / 1000,
+                "relative_altitude": msg.relative_alt / 1000,
+                "vx": msg.vx / 100,
                 "vy": msg.vy / 100,
                 "vz": msg.vz / 100
             }
-            output = {
-                "type": "telemetry",  # Add the type of data
-                "data": telemetry_data
-            }
-            # print(f"Telemetry Data: {output}")  # Log telemetry data
-            sys.stdout.flush()  # Ensure output is printed immediately
-        # Handle ATTITUDE for attitude data
-        elif msg.get_type() == "ATTITUDE":
-            attitude_data = {
-                "roll": msg.roll,  # radians
-                "pitch": msg.pitch,
-                "yaw": msg.yaw
-            }
-            output = {
-                "type": "attitude",  # Add the type of data
-                "data": attitude_data
-            }
-            # print(f"Attitude Data: {output}")  # Log attitude data
-            sys.stdout.flush()  # Ensure output is printed immediately
+            output = {"type": "telemetry", "data": telemetry_data}
+            sys.stdout.flush()
 
-        # If telemetry or attitude data is available, emit it to the frontend
+        elif msg.get_type() == "ATTITUDE":
+            current_yaw = msg.yaw  # Store latest yaw (in radians)
+            attitude_data = {"roll": msg.roll, "pitch": msg.pitch, "yaw": current_yaw}
+            output = {"type": "attitude", "data": attitude_data}
+            sys.stdout.flush()
+
         if output:
             socketio.emit('telemetry_data', output)
 
@@ -104,53 +89,110 @@ def get_telemetry():
 def index():
     return "Drone Control Flask Server is running."
 
+# Track active movement commands
+active_commands = {"LEFT": False, "RIGHT": False, "FORWARD": False, "BACKWARD": False, "UP": False, "DOWN": False}
+
+
+    # Set initial movement values
+dx = dy = dz = 0
+
+def reset_movement():
+    """
+    Reset movement commands every second to prevent unintended continuous movement.
+    """
+    global active_commands, dx, dy, dz
+    while True:
+        time.sleep(2)  # Run every second
+        active_commands = {key: False for key in active_commands}  # Reset commands
+        dx = dy = dz = 0  # Reset movement values
+        sys.stdout.flush()
+
+
 @socketio.on('hotkeys')
 def handle_hotkeys(drone, command):
     """
-    Handle the received command from frontend (hotkeys).
+    Handle received key commands from frontend.
     """
+    global current_yaw, dx, dy, dz  # Declare global so values persist
+
     print(f"Received command: {command} for drone: {drone}")
-    sys.stdout.flush()  # Ensure output is printed immediately
+    sys.stdout.flush()
 
-    # Map the received command to corresponding velocity values
-    distance = 7
-    movement_mapping = {
-        "FORWARD": (distance, 0, 0),
-        "BACKWARD": (-distance, 0, 0),
-        "LEFT": (0, -distance, 0),
-        "RIGHT": (0, distance, 0),
-        "UP": (0, 0, -distance),
-        "DOWN": (0, 0, distance)
-    }
-    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
-    if command in movement_mapping:
-        send_velocity_command(*movement_mapping[command])
-
-        emit('command_response', {'status': 'success', 
-                               'command': f"Command {command} executed for drone {drone}",
-                               'timestamp': timestamp})
+    # Update the command state
+    if command in active_commands:
+        active_commands[command] = True
     else:
-        error_message = f"Failed to execute command (invalid or undefined command) for drone {drone}"
+        for key in active_commands:
+            if key == command:
+                active_commands[key] = False
 
-        emit('command_response', {'status': 'error', 'command': error_message, 'timestamp': timestamp})
+    # Reset movement values before applying new ones
+    dx = dy = dz = 0  
 
+    # Calculate movement based on active commands
+    if active_commands["LEFT"] and not active_commands["RIGHT"]:
+        dy = -1  # Move left
+    elif active_commands["RIGHT"] and not active_commands["LEFT"]:
+        dy = 1  # Move right
+    elif active_commands["RIGHT"] and active_commands["LEFT"]:
+        dy = 0      
+
+    if active_commands["FORWARD"] and not active_commands["BACKWARD"]:
+        dx = 1  # Move forward
+    elif active_commands["BACKWARD"] and not active_commands["FORWARD"]:
+        dx = -1  # Move backward
+    elif active_commands["BACKWARD"] and active_commands["FORWARD"]:
+        dx = 0      
+
+    if active_commands["UP"] and not active_commands["DOWN"]:
+        dz = -1  # Move up
+    elif active_commands["DOWN"] and not active_commands["UP"]:
+        dz = 1  # Move down
+    elif active_commands["UP"] and active_commands["DOWN"]:
+        dz = 0        
+
+    # # Convert movement to North-East frame
+    # heading_rad = current_yaw  # Yaw is already in radians
+    # forward_x = dx * math.cos(heading_rad) - dy * math.sin(heading_rad)
+    # forward_y = dx * math.sin(heading_rad) + dy * math.cos(heading_rad)
+
+    # # Normalize movement
+    # norm = (forward_x**2 + forward_y**2 + dz**2) ** 0.5
+    # if norm > 0:
+    #     forward_x /= norm
+    #     forward_y /= norm
+    #     dz /= norm
+
+    # Send velocity command with yaw control
+    send_velocity_command(dx, dy, dz)
+
+    # Respond to client
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    emit('command_response', {
+        'status': 'success',
+        'command': f"Command {command} executed for drone {drone}",
+        'timestamp': timestamp
+    })
+
+# Start the reset thread
+reset_thread = threading.Thread(target=reset_movement, daemon=True)
+reset_thread.start()
 
 @socketio.on('connect')
 def handle_connect():
     print("Client connected.")
-    sys.stdout.flush()  # Ensure output is printed immediately
+    sys.stdout.flush()
 
 @socketio.on('disconnect')
 def handle_disconnect():
     print("Client disconnected.")
-    sys.stdout.flush()  # Ensure output is printed immediately
+    sys.stdout.flush()
 
 if __name__ == "__main__":
-
-    initialize_mavlink_conn()  # Initialize MAVLink connection at the start
-
+    initialize_mavlink_conn()
     telemetry_thread = threading.Thread(target=get_telemetry)
     telemetry_thread.daemon = True
     telemetry_thread.start()
+    # reset_thread = threading.Thread(target=reset_movement, daemon=True)
+    # reset_thread.start()
     socketio.run(app, host="0.0.0.0", port=5001, debug=True, use_reloader=False)

@@ -6,6 +6,7 @@ from flask_socketio import SocketIO, emit
 from pymavlink import mavutil
 import threading
 from datetime import datetime
+import numpy as np
 
 # Flask App Setup
 app = Flask(__name__)
@@ -109,11 +110,15 @@ def reset_movement_and_send_command():
 
         with movement_lock:  # Lock to ensure thread safety
             if dx != 0 or dy != 0 or dz != 0:
-                send_velocity_command(dx, dy, dz)  # Send the latest command
-                dx = dy = dz = 0
+                norm = np.linalg.norm([dx, dy, dz])  # Compute the norm
+                if norm != 0:  # Avoid division by zero
+                    dx, dy, dz = dx / norm, dy / norm, dz / norm
+                    send_velocity_command(dx, dy, dz)  # Send the latest command
+                    dx = dy = dz = 0
 
             # Reset active command states after sending command
             active_commands = {key: False for key in active_commands}
+            dx = dy = dz = 0
 
         sys.stdout.flush()
 
@@ -135,10 +140,28 @@ def handle_hotkeys(drone, command):
                 if key == command:
                     active_commands[key] = False
 
-        # Update movement values based on active commands
-        dx = -1 if active_commands["BACKWARD"] and not active_commands["FORWARD"] else 1 if active_commands["FORWARD"] else 0
-        dy = -1 if active_commands["LEFT"] and not active_commands["RIGHT"] else 1 if active_commands["RIGHT"] else 0
-        dz = -1 if active_commands["UP"] and not active_commands["DOWN"] else 1 if active_commands["DOWN"] else 0
+    # Calculate movement based on active commands
+    if active_commands["LEFT"] and not active_commands["RIGHT"]:
+        dy = -1  # Move left
+    elif active_commands["RIGHT"] and not active_commands["LEFT"]:
+        dy = 1  # Move right
+    elif active_commands["RIGHT"] and active_commands["LEFT"]:
+        dy = 0      
+
+    if active_commands["FORWARD"] and not active_commands["BACKWARD"]:
+        dx = 1  # Move forward
+    elif active_commands["BACKWARD"] and not active_commands["FORWARD"]:
+        dx = -1  # Move backward
+    elif active_commands["BACKWARD"] and active_commands["FORWARD"]:
+        dx = 0      
+
+    if active_commands["UP"] and not active_commands["DOWN"]:
+        dz = -1  # Move up
+    elif active_commands["DOWN"] and not active_commands["UP"]:
+        dz = 1  # Move down
+    elif active_commands["UP"] and active_commands["DOWN"]:
+        dz = 0        
+
 
     # Respond to client
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')

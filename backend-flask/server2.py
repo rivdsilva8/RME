@@ -41,7 +41,7 @@ def send_velocity_command(vx, vy, vz):
         0,                                  # Time_boot_ms (set to 0 for now)
         mavlink_conn.target_system,         # Target system ID
         mavlink_conn.target_component,      # Target component ID
-        mavutil.mavlink.MAV_FRAME_LOCAL_NED, # Coordinate frame (local NED)
+        mavutil.mavlink.MAV_FRAME_BODY_OFFSET_NED, # Coordinate frame (local NED)
         0b0000111111000111,                 # Type mask (ignore position, only use velocity)
         0, 0, 0,                             # Position X, Y, Z (ignored)
         vx, vy, vz,                          # Velocity in X (N), Y (E), Z (D)
@@ -93,78 +93,53 @@ def index():
 active_commands = {"LEFT": False, "RIGHT": False, "FORWARD": False, "BACKWARD": False, "UP": False, "DOWN": False}
 
 
-    # Set initial movement values
+# Set initial movement values
 dx = dy = dz = 0
 
-def reset_movement():
+movement_lock = threading.Lock()  # Lock for synchronization
+
+def reset_movement_and_send_command():
     """
-    Reset movement commands every second to prevent unintended continuous movement.
+    Reset inactive movement commands every 2 seconds to prevent unintended continuous movement.
     """
     global active_commands, dx, dy, dz
+
     while True:
-        time.sleep(2)  # Run every second
-        active_commands = {key: False for key in active_commands}  # Reset commands
-        dx = dy = dz = 0  # Reset movement values
+        time.sleep(2)  # Wait for 2 seconds before resetting
+
+        with movement_lock:  # Lock to ensure thread safety
+            send_velocity_command(dx, dy, dz)  # Send the latest command
+
+            # Only reset commands that were NOT updated by hotkeys
+            for key in active_commands:
+                if not active_commands[key]:  # Reset only inactive commands
+                    dx = dy = dz = 0
+
+            active_commands = {key: False for key in active_commands}  # Reset active commands state
+
         sys.stdout.flush()
 
 
 @socketio.on('hotkeys')
 def handle_hotkeys(drone, command):
-    """
-    Handle received key commands from frontend.
-    """
-    global current_yaw, dx, dy, dz  # Declare global so values persist
+    global current_yaw, dx, dy, dz
 
     print(f"Received command: {command} for drone: {drone}")
     sys.stdout.flush()
 
-    # Update the command state
-    if command in active_commands:
-        active_commands[command] = True
-    else:
-        for key in active_commands:
-            if key == command:
-                active_commands[key] = False
+    with movement_lock:  # Lock to prevent race conditions
+        # Update the command state
+        if command in active_commands:
+            active_commands[command] = True
+        else:
+            for key in active_commands:
+                if key == command:
+                    active_commands[key] = False
 
-    # Reset movement values before applying new ones
-    dx = dy = dz = 0  
-
-    # Calculate movement based on active commands
-    if active_commands["LEFT"] and not active_commands["RIGHT"]:
-        dy = -1  # Move left
-    elif active_commands["RIGHT"] and not active_commands["LEFT"]:
-        dy = 1  # Move right
-    elif active_commands["RIGHT"] and active_commands["LEFT"]:
-        dy = 0      
-
-    if active_commands["FORWARD"] and not active_commands["BACKWARD"]:
-        dx = 1  # Move forward
-    elif active_commands["BACKWARD"] and not active_commands["FORWARD"]:
-        dx = -1  # Move backward
-    elif active_commands["BACKWARD"] and active_commands["FORWARD"]:
-        dx = 0      
-
-    if active_commands["UP"] and not active_commands["DOWN"]:
-        dz = -1  # Move up
-    elif active_commands["DOWN"] and not active_commands["UP"]:
-        dz = 1  # Move down
-    elif active_commands["UP"] and active_commands["DOWN"]:
-        dz = 0        
-
-    # # Convert movement to North-East frame
-    # heading_rad = current_yaw  # Yaw is already in radians
-    # forward_x = dx * math.cos(heading_rad) - dy * math.sin(heading_rad)
-    # forward_y = dx * math.sin(heading_rad) + dy * math.cos(heading_rad)
-
-    # # Normalize movement
-    # norm = (forward_x**2 + forward_y**2 + dz**2) ** 0.5
-    # if norm > 0:
-    #     forward_x /= norm
-    #     forward_y /= norm
-    #     dz /= norm
-
-    # Send velocity command with yaw control
-    send_velocity_command(dx, dy, dz)
+        # Update movement values based on active commands
+        dx = -1 if active_commands["BACKWARD"] and not active_commands["FORWARD"] else 1 if active_commands["FORWARD"] else 0
+        dy = -1 if active_commands["LEFT"] and not active_commands["RIGHT"] else 1 if active_commands["RIGHT"] else 0
+        dz = -1 if active_commands["UP"] and not active_commands["DOWN"] else 1 if active_commands["DOWN"] else 0
 
     # Respond to client
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -174,9 +149,11 @@ def handle_hotkeys(drone, command):
         'timestamp': timestamp
     })
 
+
 # Start the reset thread
-reset_thread = threading.Thread(target=reset_movement, daemon=True)
+reset_thread = threading.Thread(target=reset_movement_and_send_command, daemon=True)
 reset_thread.start()
+
 
 @socketio.on('connect')
 def handle_connect():

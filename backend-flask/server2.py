@@ -34,7 +34,7 @@ def send_velocity_command(vx, vy, vz):
     vz: up/down velocity.
     yaw_rate: angular velocity to turn the drone (positive = right, negative = left).
     """
-    initialize_mavlink_conn()
+   
 
      # Send the velocity command (NED frame)
     mavlink_conn.mav.set_position_target_local_ned_send(
@@ -105,19 +105,18 @@ def reset_movement_and_send_command():
     global active_commands, dx, dy, dz
 
     while True:
-        time.sleep(2)  # Wait for 2 seconds before resetting
+        time.sleep(1)  # Wait for 1 seconds before resetting
 
         with movement_lock:  # Lock to ensure thread safety
-            send_velocity_command(dx, dy, dz)  # Send the latest command
+            if dx != 0 or dy != 0 or dz != 0:
+                send_velocity_command(dx, dy, dz)  # Send the latest command
+                dx = dy = dz = 0
 
-            # Only reset commands that were NOT updated by hotkeys
-            for key in active_commands:
-                if not active_commands[key]:  # Reset only inactive commands
-                    dx = dy = dz = 0
-
-            active_commands = {key: False for key in active_commands}  # Reset active commands state
+            # Reset active command states after sending command
+            active_commands = {key: False for key in active_commands}
 
         sys.stdout.flush()
+
 
 
 @socketio.on('hotkeys')

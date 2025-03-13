@@ -105,7 +105,7 @@ def reset_movement_and_send_command():
     global active_commands, dx, dy, dz
 
     while True:
-        time.sleep(1)  # Wait for 1 seconds before resetting
+        time.sleep(1.5)  # Wait for 1 seconds before resetting
 
         with movement_lock:  # Lock to ensure thread safety
             if dx != 0 or dy != 0 or dz != 0:

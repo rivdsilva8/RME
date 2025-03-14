@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useKeyPress } from "./hooks";
 import io from "socket.io-client";
-
+import { Controller } from "./Controller";
 const baseURL = "http://localhost:5001";
 
 export enum Command {
@@ -173,6 +173,7 @@ function HotKeys() {
     <div>
    <div>
   <h4>Command Status</h4>
+  <Controller/>
   <ul
     style={{
       width: "900px",

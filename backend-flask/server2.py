@@ -111,10 +111,31 @@ def update_dv():
     # Debug print
     print(f"Pressed States: LEFT={left_pressed}, RIGHT={right_pressed}, FORWARD={forward_pressed}, BACKWARD={backward_pressed}, UP={up_pressed}, DOWN={down_pressed}")
 
+   
     # Calculate movement based on active commands
-    vy = -1 if left_pressed else 1 if right_pressed else 0
-    vx = 1 if forward_pressed else -1 if backward_pressed else 0
-    vz = -1 if up_pressed else 1 if down_pressed else 0
+    vy =0
+    if right_pressed and left_pressed:
+        vy = 0      
+    elif left_pressed:
+        vy = -1  # Move left
+    elif right_pressed:
+        vy = 1  # Move right
+
+    vx =0
+    if backward_pressed and forward_pressed:
+        vx = 0      
+    elif forward_pressed:
+        vx = 1  # Move forward
+    elif backward_pressed:
+        vx = -1  # Move backward
+
+    vz =0
+    if up_pressed and down_pressed:
+        vz = 0        
+    if up_pressed:
+        vz = -1  # Move up
+    elif down_pressed:
+        vz = 1  # Move down
 
     with g_dv_mutex:  # Lock to prevent race conditions
         g_dv = [vx, vy, vz]

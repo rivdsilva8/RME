@@ -1,6 +1,6 @@
 # RMF React Mavlink Flask
 
-# Trying to make hotkeys work with a simplified express backend and react frontend with SITL and Mavlink
+# Trying to make Keyboard and Game Controller inputs work with a simplified express backend and react frontend with SITL and Mavlink
 
 ## Clone the repo with 
 
